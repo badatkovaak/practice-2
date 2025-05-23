@@ -1,111 +1,202 @@
-from typing import Callable, List
-from attrs import define
-from math import fabs
 from copy import deepcopy
+import flet as ft
+import matplotlib.pyplot as plt
+import numerical_solver as ns
+import re
+from typing import Callable
 
-from matplotlib import pyplot as plt
-
-
-@define(slots=True)
-class MilneMethodInfo:
-    f: Callable[[float, float], float]
-    ys: List[float]
-    x_start: float
-    h: float
-    n: int = 4
+from flet.matplotlib_chart import MatplotlibChart
 
 
-def predictor(info: MilneMethodInfo) -> float:
-    n = len(info.ys) - 1
+def main(page: ft.Page):
+    def create_figure_from_params(info: ns.MilneMethodInfo):
+        fig = plt.figure()
+        ax = fig.add_subplot()
 
-    assert n + 1 == info.n
+        if len(info.ys) > 1:
+            for _ in range(len(info.ys) - 1):
+                info.ys.pop()
 
-    y_primes = [
-        info.f(info.x_start + (info.n - 3 + i) * info.h, info.ys[n - 2 + i])
-        for i in range(3)
-    ]
+            info.n = 1
 
-    # print("predictor primes", y_primes)
+        try:
+            ns.numerically_solve(info)
+        except ZeroDivisionError:
+            print("ZeroDivisionError has occurred, input correct data")
+            return fig
 
-    result = info.ys[n - 3] + 4 * info.h / 3 * (
-        2 * y_primes[0] - y_primes[1] + 2 * y_primes[2]
+        xs = [info.x_start + i * info.h for i in range(info.n)]
+        ax.plot(xs, info.ys, "r")
+
+        return fig
+
+    def create_function(input: str) -> Callable[[float, float], float] | None:
+        input1 = deepcopy(input)
+        input1 = re.sub(r"math\.[a-zA-Z]{2,}", "", input1)
+
+        if re.match(r".*[a-zA-Z]{2,}.*", input1):
+            print("passed invalid function")
+            return None
+
+        function_template = (
+            f"import math\n\ndef f(x,y):\n  res = {input}\n  return res\n"
+        )
+
+        try:
+            code = compile(function_template, "<string>", "exec")
+        except Exception:
+            print("an error occurred while compiling")
+            return None
+
+        namespace = {}
+
+        try:
+            exec(code, namespace)
+        except Exception:
+            print("an error occurred while in exec")
+            return None
+
+        return namespace["f"]
+
+    def update_figure(info: ns.MilneMethodInfo, chart: MatplotlibChart):
+        chart.figure = create_figure_from_params(info)
+        chart.update()
+
+    def upadate_table(info: ns.MilneMethodInfo, value_table: ft.DataTable):
+        if value_table.rows is None:
+            return
+
+        if value_table.rows.__len__() > 0:
+            for _ in range(value_table.rows.__len__()):
+                value_table.rows.pop()
+
+        data_table_len = min(10, info.ys.__len__())
+        for i in range(data_table_len):
+            value_table.rows.append(
+                ft.DataRow(
+                    cells=[
+                        ft.DataCell(ft.Text(str(info.x_start + i * info.h))),
+                        ft.DataCell(ft.Text(str(info.ys[i]))),
+                    ],
+                )
+            )
+
+        page.update()
+
+    def h_on_submit(
+        info: ns.MilneMethodInfo, chart: MatplotlibChart, value_table: ft.DataTable, e
+    ):
+        print(e)
+        info.h = float(e.data)
+        update_figure(info, chart)
+        upadate_table(info, value_table)
+
+    def x_start_on_submit(
+        info: ns.MilneMethodInfo, chart: MatplotlibChart, value_table: ft.DataTable, e
+    ):
+        print(e)
+        info.x_start = float(e.data)
+        update_figure(info, chart)
+        upadate_table(info, value_table)
+
+    def x_end_on_submit(
+        info: ns.MilneMethodInfo, chart: MatplotlibChart, value_table: ft.DataTable, e
+    ):
+        print(e)
+        info.x_end = float(e.data)
+        update_figure(info, chart)
+        upadate_table(info, value_table)
+
+    def y_start_on_submit(
+        info: ns.MilneMethodInfo, chart: MatplotlibChart, value_table: ft.DataTable, e
+    ):
+        print(e)
+        info.ys[0] = float(e.data)
+        update_figure(info, chart)
+        upadate_table(info, value_table)
+
+    def function_on_submit(
+        info: ns.MilneMethodInfo, chart: MatplotlibChart, value_table: ft.DataTable, e
+    ):
+        print("function - ", e)
+        f = create_function(e.data)
+
+        if f is None:
+            return
+
+        info.f = f
+
+        update_figure(info, chart)
+        upadate_table(info, value_table)
+
+    page.title = "Practice App"
+    page.theme_mode = ft.ThemeMode.SYSTEM
+    page.padding = 20
+    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+
+    info = ns.MilneMethodInfo(
+        lambda x, y: x + y * x,
+        [2],
+        2,
+        3,
+        0.01,
     )
 
-    # print("predictor result is ", result)
+    chart = None
+    value_table = None
+    func = lambda f: lambda x: f(info, chart, value_table, x)
 
-    return result
-
-
-def corrector(info: MilneMethodInfo, y_n_plus_1: float) -> float:
-    n = len(info.ys) - 1
-
-    assert n + 1 == info.n
-
-    y_primes = [
-        info.f(info.x_start + (info.n - 3 + i) * info.h, info.ys[n - 2 + i])
-        for i in range(3)
-    ]
-
-    y_n_plus_1_prime = info.f(info.x_start + info.n * info.h, y_n_plus_1)
-
-    # print("corrector primes", y_primes)
-
-    result = info.ys[n - 1] + info.h / 3 * (
-        y_primes[1] + 4 * y_primes[2] + y_n_plus_1_prime
+    page.add(
+        ft.Row(
+            [
+                ft.Column(
+                    [
+                        ft.Text(
+                            "derivative of y (use y and x as variables, python math module is available):"
+                        ),
+                        ft.TextField(
+                            value="x + y/x",
+                            on_submit=func(function_on_submit),
+                        ),
+                        ft.Text("h:"),
+                        ft.TextField(
+                            value="0.01",
+                            on_submit=func(h_on_submit),
+                        ),
+                        ft.Text("start value of x:"),
+                        ft.TextField(
+                            value="2",
+                            on_submit=func(x_start_on_submit),
+                        ),
+                        ft.Text("end value of x:"),
+                        ft.TextField(
+                            value="3",
+                            on_submit=func(x_end_on_submit),
+                        ),
+                        ft.Text("start value of y:"),
+                        ft.TextField(
+                            value="1",
+                            on_submit=func(y_start_on_submit),
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
+                ),
+                value_table := ft.DataTable(
+                    columns=[ft.DataColumn(ft.Text("x")), ft.DataColumn(ft.Text("y"))],
+                    vertical_lines=ft.BorderSide(1, ft.Colors.GREY_800),
+                ),
+                chart := MatplotlibChart(
+                    create_figure_from_params(info), isolated=True, original_size=True
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=100,
+        )
     )
 
-    # print("corrector result is ", result)
-
-    return result
-
-
-def milne_method(info: MilneMethodInfo, k: int):
-    for i in range(k):
-        y_n_plus_1 = corrector(info, predictor(info))
-        info.ys.append(y_n_plus_1)
-        info.n += 1
-
-    print(info.ys)
-
-    return info
-
-
-def f1(x: float, y: float) -> float:
-    return x * x * x + y
-
-
-def f2(x: float, y: float) -> float:
-    return (2 - y * y) / (5 * x)
-
-
-def f3(x: float, y: float) -> float:
-    return x + y / x
-
-
-def f4(x: float) -> float:
-    return x * x + 0.001 * x
-
-
-def main() -> None:
-    info1 = MilneMethodInfo(f1, [2, 2.073, 2.452, 3.023], 0, 0.2)
-    milne_method(info1, 1)
-
-    info2 = MilneMethodInfo(f2, [1, 1.0049, 1.0097, 1.0143], 4, 0.1)
-    milne_method(info2, 1)
-
-    info3 = MilneMethodInfo(f3, [1, 1.0201, 1.0404, 1.0609], 1, 0.01)
-    milne_method(info3, 97)
-
-    xs = [info3.x_start + i * info3.h for i in range(101)]
-    ys1 = [f4(xs[i]) for i in range(101)]
-    diff = [fabs(info3.ys[i] - ys1[i]) for i in range(101)]
-
-    print(max(diff))
-
-    plot1 = plt.plot(xs, info3.ys, ".--b")
-    plot2 = plt.plot(deepcopy(xs), ys1, ".--r")
-    plt.show()
+    upadate_table(info, value_table)
+    page.update()
 
 
 if __name__ == "__main__":
-    main()
+    ft.app(main)
