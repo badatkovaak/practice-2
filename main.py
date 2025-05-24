@@ -1,11 +1,10 @@
 from copy import deepcopy
+from typing import Callable
+from flet.matplotlib_chart import MatplotlibChart
 import flet as ft
 import matplotlib.pyplot as plt
 import numerical_solver as ns
 import re
-from typing import Callable
-
-from flet.matplotlib_chart import MatplotlibChart
 
 
 def main(page: ft.Page):
@@ -135,11 +134,11 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     info = ns.MilneMethodInfo(
-        lambda x, y: x + y * x,
-        [2],
-        2,
-        3,
-        0.01,
+        f=lambda x, y: x + y * x,
+        y_start=2,
+        x_start=2,
+        x_end=3,
+        h=0.01,
     )
 
     chart = None
@@ -189,8 +188,7 @@ def main(page: ft.Page):
                     create_figure_from_params(info), isolated=True, original_size=True
                 ),
             ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=100,
+            alignment=ft.MainAxisAlignment.SPACE_EVENLY,
         )
     )
 

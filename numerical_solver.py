@@ -1,6 +1,5 @@
 from typing import Callable, List
 from math import fabs
-from copy import deepcopy
 from matplotlib import pyplot as plt
 
 
@@ -12,15 +11,26 @@ class MilneMethodInfo:
     h: float
     n: int = 1
 
-    def __init__(self, f, ys, x_start, x_end, h, n=None):
+    def __init__(
+        self,
+        f: Callable[[float, float], float],
+        y_start: float,
+        x_start: float,
+        x_end: float,
+        h: float,
+    ):
         self.f = f
-        self.ys = ys
+        self.ys = [y_start]
         self.x_start = x_start
         self.x_end = x_end
+
+        if x_end < x_start:
+            raise Exception()
+
         self.h = h
 
-        if n is not None:
-            self.n = n
+        if h <= 0:
+            raise Exception()
 
 
 def modified_euler(info: MilneMethodInfo, accuracy: float) -> None:
@@ -101,9 +111,6 @@ def milne_method(info: MilneMethodInfo, k: int) -> MilneMethodInfo:
     return info
 
 
-# def numerically_solve(
-#     f: Callable[[float, float], float], x_start: float, y_start: float, h: float, n: int
-# ) -> MilneMethodInfo:
 def numerically_solve(info: MilneMethodInfo) -> MilneMethodInfo:
     # info = MilneMethodInfo(f, [y_start], x_start, h, 1)
     k = round((info.x_end - info.x_start) / info.h)
@@ -124,10 +131,9 @@ def numerically_solve_raw(
     y_start: float,
     h: float,
 ):
-    return numerically_solve(MilneMethodInfo(f, [y_start], x_start, x_end, h, 1))
+    return numerically_solve(MilneMethodInfo(f, y_start, x_start, x_end, h))
 
-
-def main() -> None:
+    # def main() -> None:
     # info1 = numerically_solve(lambda x,y: x*x*x + y, 0, 2, 0.2, 10)
     # info1 = MilneMethodInfo(f1, [2, 2.073, 2.452, 3.023], 0, 0.2)
     # milne_method(info1, 1)
@@ -136,7 +142,7 @@ def main() -> None:
     # info2 = MilneMethodInfo(f2, [1, 1.0049, 1.0097, 1.0143], 4, 0.1)
     # milne_method(info2, 1)
 
-    info3 = numerically_solve_raw(lambda x, y: x + y / x, 1, 1, 0.01, 100)
+    # info3 = numerically_solve_raw(lambda x, y: x + y / x, 1, 1, 0.01, 100)
     # info3 = MilneMethodInfo(f3, [1, 1.0201, 1.0404, 1.0609], 1, 0.01)
     # milne_method(info3, 97)
     # info3 = numerically_solve(lambda x,y: x + y, 0, 1, 0.1, 5)
@@ -158,6 +164,36 @@ def main() -> None:
     # plt.figure
     # plt.savefig("figure.png")
     # plt.show()
+
+
+def main():
+    x_start = float(input("Input start of the interval:"))
+    x_end = float(input("Input end of the interval:"))
+
+    if x_end <= x_start:
+        print("Invalid interval")
+        return
+
+    y_start = float(input("Input start value of y:"))
+    h = float(input("Input h:"))
+
+    if h <= 0:
+        print("Invalid h")
+        return
+
+    info = MilneMethodInfo(lambda x, y: x + y / x, y_start, x_start, x_end, h)
+    print(info)
+    info = numerically_solve(info)
+
+    xs = [x_start + info.h * i for i in info.ys]
+    ys_correct = [x * x for x in xs]
+    diff = [fabs(y1 - y2) for (y1, y2) in zip(ys_correct, info.ys)]
+    print("maxmimum difference = ", max(diff))
+
+    plt.plot(xs, info.ys, ".-b")
+    plt.plot(xs, ys_correct, ".-r")
+    plt.plot(xs, diff, ".-y")
+    plt.show()
 
 
 if __name__ == "__main__":
