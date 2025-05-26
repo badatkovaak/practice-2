@@ -151,31 +151,38 @@ def main(page: ft.Page):
                 ft.Column(
                     [
                         ft.Text(
-                            "derivative of y (use y and x as variables, python math module is available):"
+                            "y' = f(x, y) =  \n(use python syntax)",
+                            size=20,
+                            no_wrap=False,
                         ),
                         ft.TextField(
                             value="x + y/x",
                             on_submit=func(function_on_submit),
+                            text_size=20,
                         ),
-                        ft.Text("h:"),
+                        ft.Text("h:", size=20),
                         ft.TextField(
                             value="0.025",
                             on_submit=func(h_on_submit),
+                            text_size=20,
                         ),
-                        ft.Text("start value of x:"),
+                        ft.Text("start value of x:", size=20),
                         ft.TextField(
                             value="1",
                             on_submit=func(x_start_on_submit),
+                            text_size=20,
                         ),
-                        ft.Text("end value of x:"),
+                        ft.Text("end value of x:", size=20),
                         ft.TextField(
                             value="2",
                             on_submit=func(x_end_on_submit),
+                            text_size=20,
                         ),
-                        ft.Text("start value of y:"),
+                        ft.Text("start value of y:", size=20),
                         ft.TextField(
                             value="1",
                             on_submit=func(y_start_on_submit),
+                            text_size=20,
                         ),
                     ],
                     alignment=ft.MainAxisAlignment.START,

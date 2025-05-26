@@ -1,5 +1,5 @@
 from typing import Callable, List
-from math import fabs, floor
+from math import fabs, floor, ceil
 from matplotlib import pyplot as plt
 
 
@@ -103,12 +103,24 @@ def milne_method(info: MilneMethodInfo, k: int) -> MilneMethodInfo:
 
 
 def numerically_solve(info: MilneMethodInfo) -> MilneMethodInfo:
-    k = round((info.x_end - info.x_start) / info.h)
+    a = (info.x_end - info.x_start) / info.h
 
-    for _ in range(3):
+    if fabs(a - floor(a)) > 0.00000000000001:
+        info.h = (info.x_end - info.x_start) / floor(a)
+
+    k = floor((info.x_end - info.x_start) / info.h)
+
+    for i in range(3):
+        if i + 1 >= k:
+            return info
+
         modified_euler(info, 0.0000000001)
 
     milne_method(info, k - 3)
+
+    if floor(info.h / 0.001) > 1:
+        interpolate(info, floor(info.h / 0.001))
+
     return info
 
 
@@ -122,10 +134,12 @@ def interpolate(info: MilneMethodInfo, multiply_by: int) -> None:
     new_ys = []
     old_xs = [info.x_start + info.h * i for i in range(info.ys.__len__())]
 
-    for i in range(len(xs)):
-        i_prime = i // multiply_by
+    print(new_h, info.h, len(xs), len(old_xs), multiply_by)
+    i_prime = -1
 
-        if i % multiply_by == 0:
+    for i in range(len(xs)):
+        if i % multiply_by == 0 or i == (len(xs) - 1):
+            i_prime += 1
             new_ys.append(info.ys[i_prime])
             continue
 
@@ -160,13 +174,8 @@ def main():
 
     info = MilneMethodInfo(lambda x, y: x + y / x, y_start, x_start, x_end, h)
     info = numerically_solve(info)
-    # info2 = deepcopy(info)
-
-    if floor(h / 0.001) > 1:
-        interpolate(info, floor(h / 0.001))
 
     xs = [x_start + info.h * i for i in range(info.ys.__len__())]
-    # xs_correct = [x_start + 0.001 * i for i in range(round((x_end - x_start) / 0.001))]
     ys_correct = [x * x + (y_start / x_start - x_start) * x for x in xs]
     diff = [fabs(y1 - y2) for (y1, y2) in zip(info.ys, ys_correct)]
     print("maxmimum difference = ", max(diff))
