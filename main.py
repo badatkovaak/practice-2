@@ -151,7 +151,7 @@ def main(page: ft.Page):
                 ft.Column(
                     [
                         ft.Text(
-                            "y' = f(x, y) =  \n(use python syntax)",
+                            "y' = f(x, y) = \n(use python syntax)",
                             size=20,
                             no_wrap=False,
                         ),

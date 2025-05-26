@@ -124,8 +124,8 @@ def numerically_solve(info: MilneMethodInfo) -> MilneMethodInfo:
     return info
 
 
-def interpolate(info: MilneMethodInfo, multiply_by: int) -> None:
-    new_h = info.h / multiply_by
+def interpolate(info: MilneMethodInfo, divide_by: int) -> None:
+    new_h = info.h / divide_by
     xs = [
         info.x_start + new_h * i
         for i in range(round((info.x_end - info.x_start) / new_h) + 1)
@@ -134,11 +134,11 @@ def interpolate(info: MilneMethodInfo, multiply_by: int) -> None:
     new_ys = []
     old_xs = [info.x_start + info.h * i for i in range(info.ys.__len__())]
 
-    print(new_h, info.h, len(xs), len(old_xs), multiply_by)
+    # print(new_h, info.h, len(xs), len(old_xs), divide_by)
     i_prime = -1
 
     for i in range(len(xs)):
-        if i % multiply_by == 0 or i == (len(xs) - 1):
+        if i % divide_by == 0 or i == (len(xs) - 1):
             i_prime += 1
             new_ys.append(info.ys[i_prime])
             continue
@@ -179,12 +179,12 @@ def main():
     ys_correct = [x * x + (y_start / x_start - x_start) * x for x in xs]
     diff = [fabs(y1 - y2) for (y1, y2) in zip(info.ys, ys_correct)]
     print("maxmimum difference = ", max(diff))
-    print(len(xs), len(info.ys), info.h, xs[-1])
+    # print(len(xs), len(info.ys), info.h, xs[-1])
 
-    # for i in range(info.ys.__len__()):
-    #     print(
-    #         f"x: {xs[i]:.3f}, y: {info.ys[i]:.8f}, correct: {ys_correct[i]:.8f}, diff: {diff[i]:.8f}"
-    #     )
+    for i in range(info.ys.__len__()):
+        a = floor(h / info.h)
+        if i % a == 0:
+            print(f"x: {xs[i]:.3f}, y: {info.ys[i]:.8f}, correct: {ys_correct[i]:.8f}")
 
     plt.plot(xs, ys_correct, "r", label="correct")
     plt.plot(xs, info.ys, "b", label="computed")
