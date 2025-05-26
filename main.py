@@ -134,11 +134,11 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     info = ns.MilneMethodInfo(
-        f=lambda x, y: x + y * x,
-        y_start=2,
-        x_start=2,
-        x_end=3,
-        h=0.01,
+        f=lambda x, y: x + y / x,
+        y_start=1,
+        x_start=1,
+        x_end=2,
+        h=0.025,
     )
 
     chart = None
@@ -159,17 +159,17 @@ def main(page: ft.Page):
                         ),
                         ft.Text("h:"),
                         ft.TextField(
-                            value="0.01",
+                            value="0.025",
                             on_submit=func(h_on_submit),
                         ),
                         ft.Text("start value of x:"),
                         ft.TextField(
-                            value="2",
+                            value="1",
                             on_submit=func(x_start_on_submit),
                         ),
                         ft.Text("end value of x:"),
                         ft.TextField(
-                            value="3",
+                            value="2",
                             on_submit=func(x_end_on_submit),
                         ),
                         ft.Text("start value of y:"),

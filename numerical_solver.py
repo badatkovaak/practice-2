@@ -1,5 +1,5 @@
 from typing import Callable, List
-from math import fabs
+from math import fabs, floor
 from matplotlib import pyplot as plt
 
 
@@ -106,22 +106,53 @@ def numerically_solve(info: MilneMethodInfo) -> MilneMethodInfo:
     k = round((info.x_end - info.x_start) / info.h)
 
     for _ in range(3):
-        modified_euler(info, 0.0000001)
+        modified_euler(info, 0.0000000001)
 
     milne_method(info, k - 3)
     return info
 
 
+def interpolate(info: MilneMethodInfo, multiply_by: int) -> None:
+    new_h = info.h / multiply_by
+    xs = [
+        info.x_start + new_h * i
+        for i in range(round((info.x_end - info.x_start) / new_h) + 1)
+    ]
+
+    new_ys = []
+    old_xs = [info.x_start + info.h * i for i in range(info.ys.__len__())]
+
+    for i in range(len(xs)):
+        i_prime = i // multiply_by
+
+        if i % multiply_by == 0:
+            new_ys.append(info.ys[i_prime])
+            continue
+
+        if fabs(old_xs[i_prime + 1] - old_xs[i_prime]) < 0.00000000000001:
+            new_ys.append(new_ys[-1])
+            continue
+
+        new_y = (
+            (xs[i] - old_xs[i_prime]) / (old_xs[i_prime + 1] - old_xs[i_prime])
+        ) * (info.ys[i_prime + 1] - info.ys[i_prime]) + info.ys[i_prime]
+        new_ys.append(new_y)
+
+    info.ys = new_ys
+    info.h = new_h
+    info.n = new_ys.__len__()
+
+
 def main():
-    x_start = float(input("Input start of the interval:"))
-    x_end = float(input("Input end of the interval:"))
+    x_start = float(input("Input start of the interval: "))
+    x_end = float(input("Input end of the interval: "))
 
     if x_end <= x_start:
         print("Invalid interval")
         return
 
-    y_start = float(input("Input start value of y:"))
-    h = float(input("Input h:"))
+    y_start = float(input("Input start value of y: "))
+    h = float(input("Input h: "))
 
     if h <= 0:
         print("Invalid h")
@@ -129,15 +160,27 @@ def main():
 
     info = MilneMethodInfo(lambda x, y: x + y / x, y_start, x_start, x_end, h)
     info = numerically_solve(info)
+    # info2 = deepcopy(info)
 
-    xs = [x_start + h * i for i in range(info.ys.__len__())]
+    if floor(h / 0.001) > 1:
+        interpolate(info, floor(h / 0.001))
+
+    xs = [x_start + info.h * i for i in range(info.ys.__len__())]
+    # xs_correct = [x_start + 0.001 * i for i in range(round((x_end - x_start) / 0.001))]
     ys_correct = [x * x + (y_start / x_start - x_start) * x for x in xs]
-    diff = [fabs(y1 - y2) for (y1, y2) in zip(ys_correct, info.ys)]
+    diff = [fabs(y1 - y2) for (y1, y2) in zip(info.ys, ys_correct)]
     print("maxmimum difference = ", max(diff))
+    print(len(xs), len(info.ys), info.h, xs[-1])
 
-    plt.plot(xs, info.ys, "b")
-    plt.plot(xs, ys_correct, "r")
-    plt.plot(xs, diff, "y")
+    # for i in range(info.ys.__len__()):
+    #     print(
+    #         f"x: {xs[i]:.3f}, y: {info.ys[i]:.8f}, correct: {ys_correct[i]:.8f}, diff: {diff[i]:.8f}"
+    #     )
+
+    plt.plot(xs, ys_correct, "r", label="correct")
+    plt.plot(xs, info.ys, "b", label="computed")
+    plt.plot(xs, diff, "y", label="difference")
+    plt.legend(loc="upper left", fontsize=20)
     plt.show()
 
 
